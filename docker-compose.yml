@@ -1,0 +1,86 @@
+version: '3.8'
+
+services:
+  mssql:
+    image: mcr.microsoft.com/mssql/server:2019-latest
+    container_name: mssql
+    environment:
+      - ACCEPT_EULA=Y
+      - SA_PASSWORD=YourStrong!Passw0rd
+      - MSSQL_PID=Express
+    ports:
+      - "1433:1433"
+    volumes:
+      - mssql_data:/var/opt/mssql
+      - ./mssql/init.sql:/init.sql
+    command: /bin/bash -c "/opt/mssql/bin/sqlservr & sleep 30 && /opt/mssql-tools/bin/sqlcmd -S localhost -U SA -P YourStrong!Passw0rd -i /init.sql && tail -f /dev/null"
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/mssql-tools/bin/sqlcmd -S localhost -U SA -P YourStrong!Passw0rd -Q 'SELECT 1'"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  odoo:
+    image: odoo:15.0  # Используйте нужную версию Odoo
+    container_name: odoo
+    depends_on:
+      - db
+    ports:
+      - "8069:8069"
+    volumes:
+      - odoo_data:/var/lib/odoo
+      - ./config/odoo.conf:/etc/odoo/odoo.conf
+    environment:
+      - HOST=db
+      - USER=odoo
+      - PASSWORD=odoo
+
+  db:
+    image: postgres:13
+    container_name: db
+    environment:
+      - POSTGRES_USER=odoo
+      - POSTGRES_PASSWORD=odoo
+      - POSTGRES_DB=postgres
+    volumes:
+      - db_data:/var/lib/postgresql/data
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+
+  data_extractor:
+    build: ./data_extractor
+    container_name: data_extractor
+    depends_on:
+      - mssql
+      - rabbitmq
+    environment:
+      - MSSQL_HOST=mssql
+      - MSSQL_USER=SA
+      - MSSQL_PASSWORD=YourStrong!Passw0rd
+      - RABBITMQ_HOST=rabbitmq
+
+  data_processor:
+    build: ./data_processor
+    container_name: data_processor
+    depends_on:
+      - odoo
+      - rabbitmq
+    environment:
+      - ODOO_URL=http://odoo:8069
+      - ODOO_DB=odoo
+      - ODOO_USER=admin
+      - ODOO_PASSWORD=admin
+      - RABBITMQ_HOST=rabbitmq
+
+volumes:
+  mssql_data:
+  odoo_data:
+  db_data:
+  rabbitmq_data:
