@@ -2,7 +2,7 @@ version: '3.8'
 
 services:
   mssql:
-    image: mcr.microsoft.com/mssql/server:2019-latest
+    build: ./mssql
     container_name: mssql
     environment:
       - ACCEPT_EULA=Y
@@ -12,13 +12,11 @@ services:
       - "1433:1433"
     volumes:
       - mssql_data:/var/opt/mssql
-      - ./mssql/init.sql:/init.sql
-    command: /bin/bash -c "/opt/mssql/bin/sqlservr & sleep 30 && /opt/mssql-tools/bin/sqlcmd -S localhost -U SA -P YourStrong!Passw0rd -i /init.sql && tail -f /dev/null"
     healthcheck:
       test: ["CMD-SHELL", "/opt/mssql-tools/bin/sqlcmd -S localhost -U SA -P YourStrong!Passw0rd -Q 'SELECT 1'"]
       interval: 10s
       timeout: 5s
-      retries: 5
+      retries: 10
 
   odoo:
     image: odoo:15.0  # Используйте нужную версию Odoo
