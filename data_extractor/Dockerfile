@@ -12,7 +12,7 @@ RUN apt-get update && apt-get install -y \
 
 # Установка ODBC драйвера для MSSQL
 RUN curl https://packages.microsoft.com/keys/microsoft.asc | apt-key add - \
-    && echo "deb [arch=amd64] https://packages.microsoft.com/debian/10/prod buster main" > /etc/apt/sources.list.d/mssql-release.list \
+    && curl https://packages.microsoft.com/config/debian/10/prod.list > /etc/apt/sources.list.d/mssql-release.list \
     && apt-get update \
     && ACCEPT_EULA=Y apt-get install -y msodbcsql17
 
@@ -22,5 +22,7 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 COPY data_extractor.py .
+COPY wait-for-it.sh /wait-for-it.sh
+RUN chmod +x /wait-for-it.sh
 
-CMD ["python", "data_extractor.py"]
+CMD ["bash", "-c", "/wait-for-it.sh mssql:1433 -- python data_extractor.py"]
