@@ -6,36 +6,36 @@ services:
     container_name: mssql
     environment:
       - ACCEPT_EULA=Y
-      - SA_PASSWORD=YourStrong!Passw0rd
+      - SA_PASSWORD=Admin@123
       - MSSQL_PID=Developer
     ports:
       - "1433:1433"
     volumes:
       - mssql_data:/var/opt/mssql
     healthcheck:
-      test: ["CMD-SHELL", "/opt/mssql-tools/bin/sqlcmd -S localhost -U SA -P YourStrong!Passw0rd -Q 'SELECT 1'"]
+      test: ["CMD-SHELL", "/opt/mssql-tools/bin/sqlcmd -S localhost -U SA -P Admin@123 -Q 'SELECT 1'"]
       interval: 10s
       timeout: 5s
       retries: 10
 
   odoo:
-    image: odoo:15.0  # Используйте нужную версию Odoo
+    image: odoo:17.0
     container_name: odoo
     depends_on:
-      - db
+      - odoo_db
     ports:
       - "8069:8069"
     volumes:
       - odoo_data:/var/lib/odoo
       - ./config/odoo.conf:/etc/odoo/odoo.conf
     environment:
-      - HOST=db
+      - HOST=odoo_db
       - USER=odoo
       - PASSWORD=odoo
 
-  db:
+  odoo_db:
     image: postgres:13
-    container_name: db
+    container_name: odoo_db
     environment:
       - POSTGRES_USER=odoo
       - POSTGRES_PASSWORD=odoo
@@ -51,6 +51,12 @@ services:
       - "15672:15672"
     volumes:
       - rabbitmq_data:/var/lib/rabbitmq
+      - ./config/rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf
+    healthcheck:
+      test: ["CMD", "rabbitmqctl", "status"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   data_extractor:
     build: ./data_extractor
@@ -61,7 +67,7 @@ services:
     environment:
       - MSSQL_HOST=mssql
       - MSSQL_USER=SA
-      - MSSQL_PASSWORD=YourStrong!Passw0rd
+      - MSSQL_PASSWORD=Admin@123
       - RABBITMQ_HOST=rabbitmq
 
   data_processor:
