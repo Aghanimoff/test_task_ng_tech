@@ -1,3 +1,3 @@
 #!/bin/bash
-
-/wait-for-it.sh rabbitmq:5672 -- /wait-for-it.sh odoo:8069 -- python data_processor.py
+/app/wait-for-it.sh rabbitmq:5672 -- \
+python -m debugpy --listen 0.0.0.0:5678 --wait-for-client data_processor.py

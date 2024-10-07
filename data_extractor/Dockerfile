@@ -25,4 +25,8 @@ COPY data_extractor.py .
 COPY wait-for-it.sh /wait-for-it.sh
 RUN chmod +x /wait-for-it.sh
 
-CMD ["bash", "-c", "/wait-for-it.sh mssql:1433 -- python data_extractor.py"]
+# Открываем порт для отладки
+EXPOSE 5678
+
+# Запускаем приложение с debugpy
+CMD ["bash", "-c", "/wait-for-it.sh mssql:1433 -- python -m debugpy --listen 0.0.0.0:5678 --wait-for-client data_extractor.py"]
